@@ -48,4 +48,3 @@ echo "postgres connection"
 
 echo 'postgres:postgres' | sudo chpasswd
 
-sudo -i -u postgres ssh-keygen -t rsa -f "/var/lib/postgresql/.ssh/id_rsa" -N "postgres"

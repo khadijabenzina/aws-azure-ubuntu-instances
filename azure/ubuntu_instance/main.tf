@@ -1,39 +1,7 @@
-resource "random_pet" "rg-name" {
-  prefix    = var.resource_group_name_prefix
-}
-
-resource "azurerm_resource_group" "rg" {
-  name      = random_pet.rg-name.id
-  location  = var.resource_group_location
-}
-
-# Create virtual network
-resource "azurerm_virtual_network" "myterraformnetwork" {
-  name                = "myVnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-}
-
-# Create subnet
-resource "azurerm_subnet" "myterraformsubnet" {
-  name                 = "mySubnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.myterraformnetwork.name
-  address_prefixes     = ["10.0.1.0/24"]
-}
-
-# Create public IPs
-resource "azurerm_public_ip" "myterraformpublicip" {
-  name                = "myPublicIP"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Static"
-}
 
 # Create Network Security Group and rule
 resource "azurerm_network_security_group" "myterraformnsg" {
-  name                = "myNetworkSecurityGroup"
+  name                = "NetworkSecurityGroup"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -52,7 +20,7 @@ resource "azurerm_network_security_group" "myterraformnsg" {
 
 # Create network interface
 resource "azurerm_network_interface" "myterraformnic" {
-  name                = "myNIC"
+  name                = "AZ_NIC"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -60,7 +28,6 @@ resource "azurerm_network_interface" "myterraformnic" {
     name                          = "myNicConfiguration"
     subnet_id                     = azurerm_subnet.myterraformsubnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.myterraformpublicip.id
   }
 }
 
@@ -118,29 +85,32 @@ resource "azurerm_linux_virtual_machine" "myterraformvm" {
     sku       = "18.04-LTS"
     version   = "latest"
   }
-  connection {
-    host     = self.public_ip_address
-    user     = self.admin_username
-    password = self.admin_password
-  }
-  provisioner "file" {
-    source      = "./script-init.sh"
-    destination = "/tmp/script-init.sh"
+  # connection {
+  #   type        = "ssh"
+  #   host     = self.public_ip_address
+  #   user     = self.admin_username
+  #   private_key = tls_private_key.example_ssh.private_key_pem
+  # }
+  # provisioner "file" {
+  #   source      = "./script-init.sh"
+  #   destination = "/tmp/script-init.sh"
 
-  }
+  # }
 
-  provisioner "remote-exec" {
-    inline = [
-      "tr -d '\r' </tmp/script-init.sh >a.tmp",
-      "mv a.tmp script-init.sh",
-      "chmod +x ./script-init.sh",
-      "sudo ./script-init.sh",
-    ]
-  }
-  provisioner "remote-exec" {
-    inline = [
-      "echo ${azurerm_linux_virtual_machine.myterraformvm.public_ip_address}",
-      "sudo -i -u postgres sshpass -p 'postgres' ssh-copy-id postgres@${azurerm_linux_virtual_machine.myterraformvm.public_ip_address}",
-    ]
-  }
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "echo done",
+      # "tr -d '\r' </tmp/script-init.sh >a.tmp",
+      # "mv a.tmp script-init.sh",
+      # "chmod +x ./script-init.sh",
+      # "sudo ./script-init.sh",
+  #   ]
+  # }
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "echo ${azurerm_linux_virtual_machine.myterraformvm.public_ip_address}",
+  #     "#sudo -i -u postgres sshpass -p 'postgres' ssh-copy-id postgres@${azurerm_linux_virtual_machine.myterraformvm.public_ip_address}",
+  #   ]
+  # }
 }
+
